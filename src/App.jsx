@@ -23,6 +23,12 @@ const theme = createTheme({
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
+  
+  // Debug environment variables
+  console.log('Environment variables:');
+  console.log('Google Client ID:', googleClientId ? googleClientId.substring(0, 20) + '...' : 'Not set');
+  console.log('Razorpay Key ID:', razorpayKeyId ? razorpayKeyId.substring(0, 20) + '...' : 'Not set');
   
   if (!googleClientId) {
     console.error('Google Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your .env file.');

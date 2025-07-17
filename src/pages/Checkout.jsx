@@ -48,47 +48,30 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
 
       // Check if Razorpay key is configured
       const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
-      if (!razorpayKeyId) {
-        throw new Error('Razorpay Key ID is not configured');
+      console.log('Razorpay Key ID from env:', razorpayKeyId);
+      
+      if (!razorpayKeyId || razorpayKeyId === 'your_razorpay_key_id_here') {
+        throw new Error('Razorpay Key ID is not configured properly');
       }
 
-      // Create order on backend (in a real app, this would be your backend API)
-      const orderData = {
-        amount: Math.round(product.price * 100), // Amount in paise (1 INR = 100 paise)
-        currency: 'INR',
-        receipt: `order_${Date.now()}`,
-        notes: {
-          productId: product.id,
-          userId: user.email,
-        },
-      };
-
-      // For demo purposes, we'll simulate the order creation
-      // In a real app, you would call your backend API here
-      const order = {
-        id: `order_${Date.now()}`,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        receipt: orderData.receipt,
-      };
-
-      // Razorpay checkout options
+      // For demo purposes, we'll use a simplified approach without backend order creation
+      // In production, you should create order on your backend first
       const options = {
         key: razorpayKeyId,
-        amount: order.amount,
-        currency: order.currency,
+        amount: Math.round(product.price * 83 * 100), // Amount in paise (INR)
+        currency: 'INR',
         name: 'E-Commerce Store',
         description: `Payment for ${product.name}`,
-        order_id: order.id,
+        // Remove order_id for now - this requires backend integration
         handler: function (response) {
           // Payment successful
           console.log('Payment successful:', response);
           onSuccess({
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
             product: product,
             user: user,
+            amount: product.price * 83,
+            currency: 'INR'
           });
         },
         prefill: {
@@ -98,6 +81,8 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
         },
         notes: {
           address: 'E-Commerce Store',
+          productId: product.id,
+          userId: user.email,
         },
         theme: {
           color: '#1976d2',
@@ -164,7 +149,7 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
         {loading ? (
           <CircularProgress size={24} color="inherit" />
         ) : (
-          `Pay ₹${(product.price * 83).toFixed(2)}`  // Assuming 1 USD = 83 INR
+          `Pay ₹${(product.price * 83).toFixed(2)}`
         )}
       </Button>
     </Paper>
@@ -220,11 +205,9 @@ const Checkout = () => {
       userId: user.email,
       productId: product.id,
       productName: product.name,
-      amount: product.price,
-      currency: 'INR',
+      amount: paymentResponse.amount,
+      currency: paymentResponse.currency,
       razorpayPaymentId: paymentResponse.razorpay_payment_id,
-      razorpayOrderId: paymentResponse.razorpay_order_id,
-      razorpaySignature: paymentResponse.razorpay_signature,
       timestamp: new Date().toISOString(),
     };
     
