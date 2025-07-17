@@ -9,6 +9,7 @@ import Admin from './pages/Admin';
 import Checkout from './pages/Checkout';
 import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext.jsx';
+import './env-test.js'; // Import env test for debugging
 
 const theme = createTheme({
   palette: {

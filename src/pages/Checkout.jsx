@@ -14,9 +14,9 @@ import { useAuth } from '../context/AuthContext.js';
 
 // Mock product data (in a real app, fetch from API)
 const mockProducts = {
-  1: { id: 1, name: 'Premium Headphones', price: 199.99 },
-  2: { id: 2, name: 'Smart Watch', price: 249.99 },
-  3: { id: 3, name: 'Wireless Earbuds', price: 129.99 },
+  1: { id: 1, name: 'Premium Headphones', price: 16599 }, // Price in INR
+  2: { id: 2, name: 'Smart Watch', price: 20749 }, // Price in INR
+  3: { id: 3, name: 'Wireless Earbuds', price: 10799 }, // Price in INR
 };
 
 // Load Razorpay script
@@ -28,6 +28,66 @@ const loadRazorpayScript = () => {
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
+};
+
+// Send email notification to super admin
+const sendAdminNotification = async (purchaseData) => {
+  try {
+    console.log('📧 ADMIN EMAIL NOTIFICATION:');
+    console.log('=================================');
+    console.log(`New Payment Received!`);
+    console.log(`Product: ${purchaseData.productName}`);
+    console.log(`Customer: ${purchaseData.customerEmail}`);
+    console.log(`Amount: ₹${purchaseData.amount.toLocaleString('en-IN')}`);
+    console.log(`Payment ID: ${purchaseData.razorpayPaymentId}`);
+    console.log(`Date: ${new Date(purchaseData.date).toLocaleString()}`);
+    console.log('=================================');
+    
+    // Call backend API to send email notification
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/admin/send-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          purchaseData: purchaseData
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Admin notification sent to backend');
+      } else {
+        console.log('⚠️  Backend not running, using fallback notification');
+      }
+    } catch (error) {
+      console.log('⚠️  Backend not available, using local notification only');
+    }
+    
+    // Browser notification fallback
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('New Payment Received!', {
+        body: `₹${purchaseData.amount.toLocaleString('en-IN')} from ${purchaseData.customerEmail}`,
+        icon: '/vite.svg'
+      });
+    }
+    
+    // Save notification to localStorage for admin dashboard
+    const notifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+    notifications.unshift({
+      id: `notif_${Date.now()}`,
+      type: 'payment_success',
+      message: `New payment of ₹${purchaseData.amount.toLocaleString('en-IN')} received from ${purchaseData.customerEmail} for ${purchaseData.productName}`,
+      purchaseData: purchaseData,
+      timestamp: new Date().toISOString(),
+      read: false
+    });
+    localStorage.setItem('adminNotifications', JSON.stringify(notifications.slice(0, 50))); // Keep last 50 notifications
+    
+  } catch (error) {
+    console.error('Failed to send admin notification:', error);
+  }
 };
 
 const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
@@ -58,7 +118,7 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
       // In production, you should create order on your backend first
       const options = {
         key: razorpayKeyId,
-        amount: Math.round(product.price * 83 * 100), // Amount in paise (INR)
+        amount: Math.round(product.price * 100), // Amount in paise (INR price * 100)
         currency: 'INR',
         name: 'E-Commerce Store',
         description: `Payment for ${product.name}`,
@@ -70,7 +130,7 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
             razorpay_payment_id: response.razorpay_payment_id,
             product: product,
             user: user,
-            amount: product.price * 83,
+            amount: product.price,
             currency: 'INR'
           });
         },
@@ -149,7 +209,7 @@ const RazorpayCheckout = ({ product, user, onSuccess, onError }) => {
         {loading ? (
           <CircularProgress size={24} color="inherit" />
         ) : (
-          `Pay ₹${(product.price * 83).toFixed(2)}`
+          `Pay ₹${product.price.toLocaleString('en-IN')}`
         )}
       </Button>
     </Paper>
@@ -199,6 +259,34 @@ const Checkout = () => {
     console.log('Payment successful:', paymentResponse);
     setPaymentSuccess(true);
     setPaymentData(paymentResponse);
+    
+    // Save the purchase to localStorage for admin dashboard
+    const purchaseData = {
+      id: `rzp_${Date.now()}`,
+      productId: product.id,
+      productName: product.name,
+      customerEmail: user.email,
+      amount: paymentResponse.amount,
+      currency: paymentResponse.currency,
+      razorpayPaymentId: paymentResponse.razorpay_payment_id,
+      date: new Date().toISOString(),
+      status: 'completed',
+      paymentId: paymentResponse.razorpay_payment_id
+    };
+    
+    // Get existing purchases from localStorage
+    const existingPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+    
+    // Add new purchase
+    existingPurchases.unshift(purchaseData); // Add to beginning of array
+    
+    // Save back to localStorage
+    localStorage.setItem('purchases', JSON.stringify(existingPurchases));
+    
+    console.log('Purchase saved to localStorage:', purchaseData);
+    
+    // Send email notification to super admin
+    sendAdminNotification(purchaseData);
     
     // In a real app, you would verify the payment on your backend
     const orderData = {
@@ -270,17 +358,13 @@ const Checkout = () => {
           <Typography>{product.name}</Typography>
         </Box>
         <Box display="flex" justifyContent="space-between" mb={2}>
-          <Typography>Price (USD):</Typography>
-          <Typography>${product.price.toFixed(2)}</Typography>
-        </Box>
-        <Box display="flex" justifyContent="space-between" mb={2}>
           <Typography>Price (INR):</Typography>
-          <Typography>₹{(product.price * 83).toFixed(2)}</Typography>
+          <Typography>₹{product.price.toLocaleString('en-IN')}</Typography>
         </Box>
         <Divider sx={{ my: 2 }} />
         <Box display="flex" justifyContent="space-between" fontWeight="bold">
           <Typography>Total:</Typography>
-          <Typography>₹{(product.price * 83).toFixed(2)}</Typography>
+          <Typography>₹{product.price.toLocaleString('en-IN')}</Typography>
         </Box>
       </Paper>
       

@@ -20,22 +20,22 @@ const mockProducts = [
     id: 1,
     name: 'Premium Headphones',
     description: 'High-quality wireless headphones with noise cancellation',
-    price: 199.99,
-    image: 'https://via.placeholder.com/300x200?text=Headphones'
+    price: 16599, // Price in INR
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop&crop=center'
   },
   {
     id: 2,
     name: 'Smart Watch',
     description: 'Feature-rich smartwatch with health monitoring',
-    price: 249.99,
-    image: 'https://via.placeholder.com/300x200?text=Smart+Watch'
+    price: 20749, // Price in INR
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=200&fit=crop&crop=center'
   },
   {
     id: 3,
     name: 'Wireless Earbuds',
     description: 'True wireless earbuds with long battery life',
-    price: 129.99,
-    image: 'https://via.placeholder.com/300x200?text=Earbuds'
+    price: 10799, // Price in INR
+    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&h=200&fit=crop&crop=center'
   },
 ];
 
@@ -92,6 +92,13 @@ const Home = () => {
                 height="200"
                 image={product.image}
                 alt={product.name}
+                sx={{
+                  objectFit: 'cover',
+                  backgroundColor: '#f5f5f5'
+                }}
+                onError={(e) => {
+                  e.target.src = `https://via.placeholder.com/300x200/1976d2/ffffff?text=${encodeURIComponent(product.name)}`;
+                }}
               />
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography gutterBottom variant="h5" component="h2">
@@ -101,7 +108,7 @@ const Home = () => {
                   {product.description}
                 </Typography>
                 <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
-                  ${product.price.toFixed(2)}
+                  ₹{product.price.toLocaleString('en-IN')}
                 </Typography>
               </CardContent>
               <CardActions>

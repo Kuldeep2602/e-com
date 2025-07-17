@@ -19,38 +19,65 @@ import {
   DialogActions,
   TextField,
   Snackbar,
-  Alert
+  Alert,
+  Badge,
+  Card,
+  CardContent,
+  Chip
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext.js';
 
-// Mock data for demonstration
+// Mock data for demonstration - Updated with INR pricing
 const mockSalesData = [
   {
-    id: 'sale_001',
+    id: 'rzp_001',
     productId: 1,
     productName: 'Premium Headphones',
-    customerEmail: 'user1@example.com',
-    amount: 199.99,
-    date: '2023-06-15T10:30:00Z',
-    status: 'completed'
+    customerEmail: 'john.doe@gmail.com',
+    amount: 16599,
+    date: '2025-01-15T10:30:00Z',
+    status: 'completed',
+    paymentId: 'pay_Nf5t2YZNqKQ7HA'
   },
   {
-    id: 'sale_002',
+    id: 'rzp_002',
     productId: 2,
     productName: 'Smart Watch',
-    customerEmail: 'user2@example.com',
-    amount: 249.99,
-    date: '2023-06-14T15:45:00Z',
-    status: 'completed'
+    customerEmail: 'sarah.smith@gmail.com',
+    amount: 20749,
+    date: '2025-01-14T15:45:00Z',
+    status: 'completed',
+    paymentId: 'pay_Nf5t2YZNqKQ7HB'
   },
   {
-    id: 'sale_003',
+    id: 'rzp_003',
     productId: 3,
     productName: 'Wireless Earbuds',
-    customerEmail: 'user3@example.com',
-    amount: 129.99,
-    date: '2023-06-13T09:15:00Z',
-    status: 'completed'
+    customerEmail: 'mike.wilson@gmail.com',
+    amount: 10799,
+    date: '2025-01-13T09:15:00Z',
+    status: 'completed',
+    paymentId: 'pay_Nf5t2YZNqKQ7HC'
+  },
+  {
+    id: 'rzp_004',
+    productId: 1,
+    productName: 'Premium Headphones',
+    customerEmail: 'priya.patel@gmail.com',
+    amount: 16599,
+    date: '2025-01-12T14:20:00Z',
+    status: 'completed',
+    paymentId: 'pay_Nf5t2YZNqKQ7HD'
+  },
+  {
+    id: 'rzp_005',
+    productId: 3,
+    productName: 'Wireless Earbuds',
+    customerEmail: 'alex.brown@gmail.com',
+    amount: 10799,
+    date: '2025-01-11T11:30:00Z',
+    status: 'completed',
+    paymentId: 'pay_Nf5t2YZNqKQ7HE'
   }
 ];
 
@@ -59,6 +86,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailContent, setEmailContent] = useState('');
   const [snackbar, setSnackbar] = useState({
@@ -79,7 +107,21 @@ const Admin = () => {
       try {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setSales(mockSalesData);
+        
+        // Get real purchases from localStorage
+        const realPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+        
+        // Get admin notifications
+        const adminNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+        setNotifications(adminNotifications);
+        
+        // Combine mock data with real purchases
+        const allSales = [...mockSalesData, ...realPurchases];
+        
+        // Sort by date (newest first)
+        allSales.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        setSales(allSales);
       } catch (error) {
         console.error('Error fetching sales data:', error);
         setSnackbar({
@@ -116,12 +158,22 @@ const Admin = () => {
   };
 
   const calculateTotalSales = () => {
-    return sales.reduce((total, sale) => total + sale.amount, 0).toFixed(2);
+    return sales.reduce((total, sale) => total + sale.amount, 0).toLocaleString('en-IN');
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
   };
+
+  const markNotificationAsRead = (notificationId) => {
+    const updatedNotifications = notifications.map(notif => 
+      notif.id === notificationId ? { ...notif, read: true } : notif
+    );
+    setNotifications(updatedNotifications);
+    localStorage.setItem('adminNotifications', JSON.stringify(updatedNotifications));
+  };
+
+  const unreadNotifications = notifications.filter(notif => !notif.read).length;
 
   if (loading) {
     return (
@@ -137,14 +189,62 @@ const Admin = () => {
         <Typography variant="h4" component="h1">
           Admin Dashboard
         </Typography>
-        <Button 
-          variant="contained" 
-          color="primary"
-          onClick={() => setEmailDialogOpen(true)}
-        >
-          Send Notification
-        </Button>
+        <Box display="flex" gap={2}>
+          <Badge badgeContent={unreadNotifications} color="error">
+            <Button 
+              variant="outlined" 
+              color="info"
+            >
+              Notifications
+            </Button>
+          </Badge>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={() => setEmailDialogOpen(true)}
+          >
+            Send Notification
+          </Button>
+        </Box>
       </Box>
+
+      {/* Real-time Notifications */}
+      {notifications.length > 0 && (
+        <Box mb={4}>
+          <Typography variant="h6" gutterBottom>
+            Recent Notifications ({unreadNotifications} unread)
+          </Typography>
+          <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+            {notifications.slice(0, 5).map((notification) => (
+              <Card 
+                key={notification.id} 
+                sx={{ 
+                  mb: 1, 
+                  backgroundColor: notification.read ? '#f5f5f5' : '#e3f2fd',
+                  cursor: 'pointer'
+                }}
+                onClick={() => markNotificationAsRead(notification.id)}
+              >
+                <CardContent sx={{ py: 1 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2">
+                      {notification.message}
+                    </Typography>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      {!notification.read && (
+                        <Chip label="New" color="primary" size="small" />
+                      )}
+                      <Typography variant="caption" color="textSecondary">
+                        {formatDate(notification.timestamp)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        </Box>
+      )}
 
       <Box display="flex" gap={3} mb={4}>
         <Paper elevation={3} sx={{ p: 3, flex: 1, textAlign: 'center' }}>
@@ -152,7 +252,7 @@ const Admin = () => {
             Total Sales
           </Typography>
           <Typography variant="h4" color="primary">
-            ${calculateTotalSales()}
+            ₹{calculateTotalSales()}
           </Typography>
         </Paper>
         <Paper elevation={3} sx={{ p: 3, flex: 1, textAlign: 'center' }}>
@@ -161,6 +261,14 @@ const Admin = () => {
           </Typography>
           <Typography variant="h4" color="primary">
             {sales.length}
+          </Typography>
+        </Paper>
+        <Paper elevation={3} sx={{ p: 3, flex: 1, textAlign: 'center' }}>
+          <Typography variant="h6" color="textSecondary" gutterBottom>
+            Average Order Value
+          </Typography>
+          <Typography variant="h4" color="primary">
+            ₹{sales.length > 0 ? Math.round(sales.reduce((total, sale) => total + sale.amount, 0) / sales.length).toLocaleString('en-IN') : '0'}
           </Typography>
         </Paper>
       </Box>
@@ -177,6 +285,7 @@ const Admin = () => {
               <TableCell><strong>Product</strong></TableCell>
               <TableCell><strong>Customer Email</strong></TableCell>
               <TableCell><strong>Amount</strong></TableCell>
+              <TableCell><strong>Payment ID</strong></TableCell>
               <TableCell><strong>Date</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
             </TableRow>
@@ -187,7 +296,10 @@ const Admin = () => {
                 <TableCell>{sale.id}</TableCell>
                 <TableCell>{sale.productName}</TableCell>
                 <TableCell>{sale.customerEmail}</TableCell>
-                <TableCell>${sale.amount.toFixed(2)}</TableCell>
+                <TableCell>₹{sale.amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  {sale.paymentId}
+                </TableCell>
                 <TableCell>{formatDate(sale.date)}</TableCell>
                 <TableCell>
                   <Box 
