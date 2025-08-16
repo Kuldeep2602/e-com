@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import { ThemeProvider as EmotionThemeProvider } from '@emotion/react';
 
 // Pages
 import Home from './pages/Home';
@@ -11,16 +9,7 @@ import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext.jsx';
 import './env-test.js'; // Import env test for debugging
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -46,22 +35,17 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
       <AuthProvider>
-        <ThemeProvider theme={theme}>
-          <EmotionThemeProvider theme={theme}>
-            <CssBaseline />
-            <Router>
-              <Navbar />
-              <div style={{ padding: '20px' }}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/checkout/:productId" element={<Checkout />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </div>
-            </Router>
-          </EmotionThemeProvider>
-        </ThemeProvider>
+        <Router>
+          <Navbar />
+          <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-2 sm:px-4 md:px-8 py-6">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/checkout/:productId" element={<Checkout />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
       </AuthProvider>
     </GoogleOAuthProvider>
   )
